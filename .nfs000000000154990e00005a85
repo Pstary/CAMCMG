@@ -1,0 +1,55 @@
+gpu_id=$1
+lang=$2
+suffix="_λ0.5"
+# optimizer
+train_batch_size=16
+eval_batch_size=16
+beam_size=10
+lr=5e-5
+epochs=10
+
+# model 
+source_length=512
+target_length=50
+base_dir="/data/DataLACP/zxy/changecoder/Attention4CMG/"
+
+data_dir="${base_dir}data_dir"
+summary_dir="${base_dir}summary_dir"
+cache_dir="${base_dir}cache_dir/${lang}"
+
+res_dir="${base_dir}res_dir${suffix}"
+output_dir="${base_dir}output_dir${suffix}"
+
+mkdir -p $res_dir
+mkdir -p $res_dir/$lang
+mkdir -p $cache_dir
+mkdir -p $output_dir
+mkdir -p $output_dir/$lang
+mkdir -p $output_dir
+
+model_name=/home/zhangxingyuan/.cache/modelscope/hub/models/Salesforce/codet5-base
+
+function train_codet5 () {
+
+echo "============TRAINING============"
+ CUDA_VISIBLE_DEVICES=$gpu_id python run_gen.py  --do_train --do_eval   --do_test \
+  --task summarize \
+  --sub_task $lang \
+  --summary_dir $summary_dir \
+  --cache_path $cache_dir \
+  --data_dir $data_dir \
+  --res_dir $res_dir \
+  --tokenizer_name $model_name \
+  --model_name_or_path $model_name \
+  --do_eval_bleu \
+  --output_dir $output_dir \
+  --save_last_checkpoints \
+  --max_source_length $source_length \
+  --max_target_length $target_length \
+  --beam_size $beam_size --train_batch_size $train_batch_size \
+  --eval_batch_size $eval_batch_size --learning_rate $lr \
+  --num_train_epochs $epochs 2>&1|tee  $output_dir/$lang/train.log 
+}
+
+
+train_codet5
